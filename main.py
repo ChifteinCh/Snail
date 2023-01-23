@@ -1,7 +1,8 @@
 
 import random
-import keyboard
+#import keyboard
 import time
+import msvcrt
 
 
 def matrix_print(matrix):
@@ -13,7 +14,7 @@ def matrix_print(matrix):
 
 
 def snail_spawn(snail_length, dimensions_xy):
-    if snail_start_length > dimensions_xy[0]/2:
+    if snail_start_length > dimensions_xy[0]//2:
         print('Error. Snake is to big to spawn')
         return
     snail_body = []
@@ -144,20 +145,20 @@ def fruit_generation(dimensions_xy, snail_body):
     return fruit_pos
 
 
-def snail_is_moving(snail_body, snail_direction, key):
-    if key == 'd' and snail_direction != 'L':
+def snail_is_moving(snail_body, snail_direction, key, key_bindings):
+    if key == key_bindings[2] and snail_direction != 'L':
         snail_body = snail_moves_right(snail_body)
         snail_direction = 'R'
 
-    if key == 'w' and snail_direction != 'D':
+    if key == key_bindings[0] and snail_direction != 'D':
         snail_body = snail_moves_up(snail_body)
         snail_direction = 'U'
 
-    if key == 'a' and snail_direction != 'R':
+    if key == key_bindings[3] and snail_direction != 'R':
         snail_body = snail_moves_left(snail_body)
         snail_direction = 'L'
 
-    if key == 's' and snail_direction != 'U':
+    if key == key_bindings[1] and snail_direction != 'U':
         snail_body = snail_moves_down(snail_body)
         snail_direction = 'D'
 
@@ -167,11 +168,28 @@ def snail_is_moving(snail_body, snail_direction, key):
     return snail_body, snail_direction
 
 
+def install_keys():
+    print('Prepare for the game!')
+    i = 0
+    key_bindings = [0, 0, 0, 0]
+    button_names = ['Up', 'Down', 'Right', 'Left']
+    while i < 4:
+        print('Press '+button_names[i]+' button')
+        while True:
+            if msvcrt.kbhit():
+                key_bindings[i] = msvcrt.getche()
+                i = i + 1
+                break
+    return(key_bindings)
+
+
+key_bindings = install_keys()
 
 dimensions_xy = [10, 10]
 snail_start_length = 3
 snail_direction = 'R'
-fruit_is_eaten = 0
+#fruit_is_eaten = 0
+time_delay = 1/5
 
 snail_body = snail_spawn(snail_start_length, dimensions_xy)
 
@@ -179,18 +197,38 @@ fruit_pos = fruit_generation(dimensions_xy, snail_body)
 
 map = map_generator(dimensions_xy, snail_body, fruit_pos)
 matrix_print(map)
+print('')
+print('')
 
 while True:
     time.sleep(0.5)
-    key = keyboard.read_key()
-    if key == 'q':
-        print('exit')
-        time.sleep(1)
-        break
+    key = ''
+    #key = keyboard.read_key()
+    #if key == 'q':
+    #    print('exit')
+    #    time.sleep(1)
+    #    break
 
     tail = snail_body[len(snail_body)-1]
 
-    snail_body, snail_direction = snail_is_moving(snail_body, snail_direction, key)
+    start_time = time.time()
+#    print(msvcrt.kbhit())
+    while True:
+        if msvcrt.kbhit():
+            key = msvcrt.getche()
+#            print(key)
+#            if key == 'w':
+#                print(True)
+#            else:
+#                print(False)
+            break
+        elif time.time() - start_time > time_delay:
+            break
+
+    if key:
+        snail_body, snail_direction = snail_is_moving(snail_body, snail_direction, key, key_bindings)
+    else:
+        snail_body = snail_saves_direction(snail_body, snail_direction)
 
     event = snail_is_checking()
     if event == 'f':
@@ -203,6 +241,6 @@ while True:
     map = map_generator(dimensions_xy, snail_body, fruit_pos)
     matrix_print(map)
 
-    print(snail_body[0])
+    #print(snail_body[0])
 
 print('end of game')
