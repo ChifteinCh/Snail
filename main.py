@@ -5,6 +5,15 @@ import time
 import msvcrt
 # a
 
+# todo пока задания такие:
+#  0. Напиши мне по комменту на 85 строке
+#  1. Все замечания исправить
+#  2. Добавить паузу по нажатию какой-то кнопки
+#  3. Добавить ещё один вид фруктов, который будет добавлять 3 ячейки к змейке (как - на твоё усмотрение)
+#  4. Добавить победное сообщение (когда змейка всё поле заполняет)
+#  5. Выпили все комменты ненужные
+
+# todo твёрдо и чётко, имя функции должно начинаться с глагола, исправь везде, много где гавно
 def matrix_print(matrix):
     print()
     for i in range(len(matrix)):
@@ -55,10 +64,13 @@ def map_generator(dimensions_xy, snail_body, fruit_pos):
 
 
 def snail_is_growing():
+    # todo можно append заюзать, вообще не стесняйся после нажатия точки рассматривать, какие там есть методы и их описания
     snail_body.insert(len(snail_body), tail)
 
 
+# todo не до конца прозрачное название. сейчас тут по сути проверяется взаимодействие с фруктом либо стеной, поэтому я бы написал что-то типа check_collision
 def snail_is_checking():
+    # todo пучарм подсказывает, что вот след. строка нахуй не нужна
     event = ''
     if snail_body[0] == fruit_pos:
         snail_is_growing()
@@ -70,7 +82,7 @@ def snail_is_checking():
         if snail_body[0] == snail_body[i+1]:
             event = 'd'
             return event
-
+    # todo чо тут происходит, напиши в личку, нихуя не понял
     if snail_body[0][0] == 0 or snail_body[0][1] == 0:
         event = 'd'
         return event
@@ -78,7 +90,11 @@ def snail_is_checking():
         event = 'd'
         return event
 
-
+# todo есть такой "принцип" - dry (don`t repeat yourself), то есть не повторять один и тот же код (иногда это уместно
+#  но редко) а в следующих 4 методах ты пишешь один и тот же код, отличающийся двумя плюсами/минусами. конкретно тут
+#  я написал бы также, но в большинстве случаев лучше так не писать, поэтому исправим. нужно вместо этих 4ёх функций,
+#  сделать одну (соответственно, там ещё аргументы добавятся).
+#  Нажимай иногда ctrl-alt-L, он тебе пофиксит стиль в файле, будешь видить как правильно должно всё выглядеть
 def snail_moves_right(snail_body):
     snail_body.pop()
     snail_body.insert(0, [snail_body[0][0], snail_body[0][1]+1])
@@ -104,6 +120,8 @@ def snail_moves_left(snail_body):
 
 
 def snail_saves_direction(snail_body, snail_direction):
+    # todo if-elif в петухоне писать вполне одобряемо (а в c# кстати в таком случае нет). Но для общего развития
+    #  давай используем тут вместо ифов конструкцию match-case
     if snail_direction == 'R':
         snail_body = snail_moves_right(snail_body)
     if snail_direction == 'L':
@@ -146,6 +164,9 @@ def fruit_generation(dimensions_xy, snail_body):
 
 
 def snail_is_moving(snail_body, snail_direction, key, key_bindings):
+    # todo думаю лучше использовать if-elif-else, у тебя же только одно действие возможно, а не несколько,
+    #  лишние проверки пропустятся
+    #  + давай посмотрим, что такое enum и заюзаем его (вместо букв для направления)
     if key == key_bindings[2] and snail_direction != 'L':
         snail_body = snail_moves_right(snail_body)
         snail_direction = 'R'
@@ -168,9 +189,11 @@ def snail_is_moving(snail_body, snail_direction, key, key_bindings):
     return snail_body, snail_direction
 
 
+# todo вот тут хорошее название функции
 def install_keys():
     print('Prepare for the game!')
     i = 0
+    #todo давай попробуем не два массива использовать, а словарь, он здесь лучше подходит
     key_bindings = [0, 0, 0, 0]
     button_names = ['Up', 'Down', 'Right', 'Left']
     while i < 4:
