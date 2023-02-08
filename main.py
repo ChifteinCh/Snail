@@ -64,11 +64,13 @@ def map_generator(dimensions_xy, snail_body, fruit_pos):
 
 
 def snail_is_growing():
-    # todo можно append заюзать, вообще не стесняйся после нажатия точки рассматривать, какие там есть методы и их описания
+    # todo можно append заюзать, вообще не стесняйся после нажатия точки рассматривать, какие там есть методы и их
+    #  описания
     snail_body.insert(len(snail_body), tail)
 
 
-# todo не до конца прозрачное название. сейчас тут по сути проверяется взаимодействие с фруктом либо стеной, поэтому я бы написал что-то типа check_collision
+# todo не до конца прозрачное название. сейчас тут по сути проверяется взаимодействие с фруктом либо стеной,
+#  поэтому я бы написал что-то типа check_collision
 def snail_is_checking():
     # todo пучарм подсказывает, что вот след. строка нахуй не нужна
     event = ''
@@ -193,14 +195,14 @@ def snail_is_moving(snail_body, snail_direction, key, key_bindings):
 def install_keys():
     print('Prepare for the game!')
     i = 0
-    #todo давай попробуем не два массива использовать, а словарь, он здесь лучше подходит
+    # todo давай попробуем не два массива использовать, а словарь, он здесь лучше подходит
     key_bindings = [0, 0, 0, 0]
     button_names = ['Up', 'Down', 'Right', 'Left']
     while i < 4:
         print('Press '+button_names[i]+' button')
         while True:
             if msvcrt.kbhit():
-                key_bindings[i] = msvcrt.getche()
+                key_bindings[i] = msvcrt.getch()
                 i = i + 1
                 break
     return(key_bindings)
@@ -226,29 +228,25 @@ print('')
 while True:
     time.sleep(0.5)
     key = ''
-    #key = keyboard.read_key()
-    #if key == 'q':
-    #    print('exit')
-    #    time.sleep(1)
-    #    break
 
     tail = snail_body[len(snail_body)-1]
 
     start_time = time.time()
-#    print(msvcrt.kbhit())
     while True:
         if msvcrt.kbhit():
-            key = msvcrt.getche()
-#            print(key)
-#            if key == 'w':
-#                print(True)
-#            else:
-#                print(False)
-            break
+            key = msvcrt.getch()
+            if key == b'p':
+                print('pause')
+                print('press "p" for unpause')
+                while True:
+                    if msvcrt.getch() == b'p':
+                        break
+            elif key in key_bindings:
+                break
         elif time.time() - start_time > time_delay:
             break
 
-    if key:
+    if key in key_bindings:
         snail_body, snail_direction = snail_is_moving(snail_body, snail_direction, key, key_bindings)
     else:
         snail_body = snail_saves_direction(snail_body, snail_direction)
