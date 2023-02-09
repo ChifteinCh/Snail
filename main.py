@@ -1,17 +1,16 @@
 
 import random
-#import keyboard
 import time
 import msvcrt
-# a
 
 # todo пока задания такие:
-#  0. Напиши мне по комменту на 85 строке
+#  done0. Напиши мне по комменту на 85 строке
 #  1. Все замечания исправить
-#  2. Добавить паузу по нажатию какой-то кнопки
-#  3. Добавить ещё один вид фруктов, который будет добавлять 3 ячейки к змейке (как - на твоё усмотрение)
-#  4. Добавить победное сообщение (когда змейка всё поле заполняет)
-#  5. Выпили все комменты ненужные
+#  done2. Добавить паузу по нажатию какой-то кнопки
+#  done3. Добавить ещё один вид фруктов, который будет добавлять 3 ячейки к змейке (как - на твоё усмотрение)
+#   generating+ mapping+ growing+
+#  done4. Добавить победное сообщение (когда змейка всё поле заполняет)
+#  done5. Выпили все комменты ненужные
 
 # todo твёрдо и чётко, имя функции должно начинаться с глагола, исправь везде, много где гавно
 def matrix_print(matrix):
@@ -53,29 +52,30 @@ def build_fruit(map, fruit_pos, fruit_tile):
     return map
 
 
-def map_generator(dimensions_xy, snail_body, fruit_pos):
+def map_generator(dimensions_xy, snail_body, fruit_pos, fruit_type):
     map_size_xy = [dimensions_xy[0]+2, dimensions_xy[1]+2]
     map = [['.']*map_size_xy[0] for i in range(map_size_xy[1])]
     map = build_walls(map, 'C', 'V', 'H')
-    map = build_fruit(map, fruit_pos, 'o')
+    map = build_fruit(map, fruit_pos, fruit_type)
     map = build_snail(map, snail_body, 's')
 
     return map
 
 
-def snail_is_growing():
+def grow_snail(growth_points):
     # todo можно append заюзать, вообще не стесняйся после нажатия точки рассматривать, какие там есть методы и их
     #  описания
     snail_body.insert(len(snail_body), tail)
+    growth_points -= 1
+    return growth_points
 
 
 # todo не до конца прозрачное название. сейчас тут по сути проверяется взаимодействие с фруктом либо стеной,
 #  поэтому я бы написал что-то типа check_collision
 def snail_is_checking():
-    # todo пучарм подсказывает, что вот след. строка нахуй не нужна
-    event = ''
+
     if snail_body[0] == fruit_pos:
-        snail_is_growing()
+#        snail_is_growing()
         event = 'f'
         return event
 
@@ -84,7 +84,7 @@ def snail_is_checking():
         if snail_body[0] == snail_body[i+1]:
             event = 'd'
             return event
-    # todo чо тут происходит, напиши в личку, нихуя не понял
+    # check collides with walls
     if snail_body[0][0] == 0 or snail_body[0][1] == 0:
         event = 'd'
         return event
@@ -96,7 +96,9 @@ def snail_is_checking():
 #  но редко) а в следующих 4 методах ты пишешь один и тот же код, отличающийся двумя плюсами/минусами. конкретно тут
 #  я написал бы также, но в большинстве случаев лучше так не писать, поэтому исправим. нужно вместо этих 4ёх функций,
 #  сделать одну (соответственно, там ещё аргументы добавятся).
-#  Нажимай иногда ctrl-alt-L, он тебе пофиксит стиль в файле, будешь видить как правильно должно всё выглядеть
+#  Нажимай иногда ctrl-alt-L, он тебе пофиксит стиль в файле, будешь видеть как правильно должно всё выглядеть
+
+
 def snail_moves_right(snail_body):
     snail_body.pop()
     snail_body.insert(0, [snail_body[0][0], snail_body[0][1]+1])
@@ -149,45 +151,36 @@ def fruit_generation(dimensions_xy, snail_body):
         y = snail_body[i][0]-1
         possible_tiles[y][x] = 0
 
-    #matrix_print(possible_tiles)
-
     for i in range(len(possible_tiles)):
         for j in possible_tiles[i].copy():
             if j == 0:
                 possible_tiles[i].remove(j)
 
-    #matrix_print(possible_tiles)
-
     fruit_y = random.randrange(1, dimensions_xy[1]+1)
     fruit_x = random.choice(possible_tiles[fruit_y-1])
     fruit_pos = [fruit_y, fruit_x]
-    print(fruit_pos)
-    return fruit_pos
+    if random.randrange(4) == 3:
+        fruit_type = 'O'
+    else:
+        fruit_type = 'o'
+    return fruit_pos, fruit_type
 
 
 def snail_is_moving(snail_body, snail_direction, key, key_bindings):
-    # todo думаю лучше использовать if-elif-else, у тебя же только одно действие возможно, а не несколько,
-    #  лишние проверки пропустятся
+    # todo
     #  + давай посмотрим, что такое enum и заюзаем его (вместо букв для направления)
     if key == key_bindings[2] and snail_direction != 'L':
         snail_body = snail_moves_right(snail_body)
         snail_direction = 'R'
-
-    if key == key_bindings[0] and snail_direction != 'D':
+    elif key == key_bindings[0] and snail_direction != 'D':
         snail_body = snail_moves_up(snail_body)
         snail_direction = 'U'
-
-    if key == key_bindings[3] and snail_direction != 'R':
+    elif key == key_bindings[3] and snail_direction != 'R':
         snail_body = snail_moves_left(snail_body)
         snail_direction = 'L'
-
-    if key == key_bindings[1] and snail_direction != 'U':
+    elif key == key_bindings[1] and snail_direction != 'U':
         snail_body = snail_moves_down(snail_body)
         snail_direction = 'D'
-
-    #else:
-    #    snail_body = snail_saves_direction(snail_body, snail_direction)
-    #    break
     return snail_body, snail_direction
 
 
@@ -208,19 +201,24 @@ def install_keys():
     return(key_bindings)
 
 
+def check_win_state():
+    if len(snail_body) >= dimensions_xy[0] * dimensions_xy[1]:
+        return True
+
+
 key_bindings = install_keys()
 
 dimensions_xy = [10, 10]
 snail_start_length = 3
 snail_direction = 'R'
-#fruit_is_eaten = 0
 time_delay = 1/5
+growth_points = 0
 
 snail_body = snail_spawn(snail_start_length, dimensions_xy)
 
-fruit_pos = fruit_generation(dimensions_xy, snail_body)
+fruit_pos, fruit_type = fruit_generation(dimensions_xy, snail_body)
 
-map = map_generator(dimensions_xy, snail_body, fruit_pos)
+map = map_generator(dimensions_xy, snail_body, fruit_pos, fruit_type)
 matrix_print(map)
 print('')
 print('')
@@ -253,15 +251,24 @@ while True:
 
     event = snail_is_checking()
     if event == 'f':
-        fruit_pos = fruit_generation(dimensions_xy, snail_body)
+        if fruit_type == 'o':
+            growth_points += 1
+        elif fruit_type == 'O':
+            growth_points += 3
+        fruit_pos, fruit_type = fruit_generation(dimensions_xy, snail_body)
     elif event == 'd':
         print('snail is dead')
         time.sleep(2)
         break
 
-    map = map_generator(dimensions_xy, snail_body, fruit_pos)
+    if growth_points > 0:
+        growth_points = grow_snail(growth_points)
+
+    map = map_generator(dimensions_xy, snail_body, fruit_pos, fruit_type)
     matrix_print(map)
 
-    #print(snail_body[0])
+    if check_win_state():
+        print('you win')
+        break
 
 print('end of game')
