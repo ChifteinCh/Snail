@@ -75,7 +75,6 @@ def grow_snail(growth_points):
 def snail_is_checking():
 
     if snail_body[0] == fruit_pos:
-#        snail_is_growing()
         event = 'f'
         return event
 
@@ -202,7 +201,7 @@ def install_keys():
 
 
 def check_win_state():
-    if len(snail_body) >= dimensions_xy[0] * dimensions_xy[1]:
+    if len(snail_body) == dimensions_xy[0] * dimensions_xy[1]:
         return True
 
 
