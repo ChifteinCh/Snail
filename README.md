@@ -1,2 +1,4 @@
 # Snail
-Улитка, но на самом деле змейка
+Snail but Snake
+
+Launch via cmd
