@@ -1,23 +1,15 @@
-
 import random
 import time
 import msvcrt
 import enum
 
-# todo пока задания такие:
-#  done0. Напиши мне по комменту на 85 строке
-#  1. Все замечания исправить
-#  done2. Добавить паузу по нажатию какой-то кнопки
-#  done3. Добавить ещё один вид фруктов, который будет добавлять 3 ячейки к змейке (как - на твоё усмотрение)
-#   generating+ mapping+ growing+
-#  done4. Добавить победное сообщение (когда змейка всё поле заполняет)
-#  done5. Выпили все комменты ненужные
 
 class MoveDirection(enum.Enum):
     Up = 'U'
     Down = 'D'
     Right = 'R'
     Left = 'L'
+
 
 def print_matrix(matrix):
     print()
@@ -28,22 +20,22 @@ def print_matrix(matrix):
 
 
 def spawn_snail(snail_length, dimensions_xy):
-    if snail_start_length > dimensions_xy[0]//2:
+    if snail_start_length > dimensions_xy[0] // 2:
         print('Error. Snake is to big to spawn')
         return
     snail_body = []
     for i in range(snail_length):
-        snail_body.append([dimensions_xy[1]//2+1, dimensions_xy[0]//2+1-i])
+        snail_body.append([dimensions_xy[1] // 2 + 1, dimensions_xy[0] // 2 + 1 - i])
     return snail_body
 
 
 def build_walls(map, corn_wall_tile, vert_wall_tile, hor_wall_tile):
     x = len(map[1])
     y = len(map)
-    map[0][0] = map[y-1][0] = map[0][x-1] = map[y-1][x-1] = corn_wall_tile
-    map[0][1:x-1] = map[y-1][1:x-1] = hor_wall_tile*(x-2)
-    for i in range(y-2):
-        map[i+1][0] = map[i+1][x-1] = vert_wall_tile
+    map[0][0] = map[y - 1][0] = map[0][x - 1] = map[y - 1][x - 1] = corn_wall_tile
+    map[0][1:x - 1] = map[y - 1][1:x - 1] = hor_wall_tile * (x - 2)
+    for i in range(y - 2):
+        map[i + 1][0] = map[i + 1][x - 1] = vert_wall_tile
     return map
 
 
@@ -59,8 +51,8 @@ def build_fruit(map, fruit_pos, fruit_tile):
 
 
 def generate_map(dimensions_xy, snail_body, fruit_pos, fruit_type):
-    map_size_xy = [dimensions_xy[0]+2, dimensions_xy[1]+2]
-    map = [['.']*map_size_xy[0] for i in range(map_size_xy[1])]
+    map_size_xy = [dimensions_xy[0] + 2, dimensions_xy[1] + 2]
+    map = [['.'] * map_size_xy[0] for i in range(map_size_xy[1])]
     map = build_walls(map, 'C', 'V', 'H')
     map = build_fruit(map, fruit_pos, fruit_type)
     map = build_snail(map, snail_body, 's')
@@ -69,21 +61,19 @@ def generate_map(dimensions_xy, snail_body, fruit_pos, fruit_type):
 
 
 def grow_snail(growth_points):
-
     snail_body.append(tail)
     growth_points -= 1
     return growth_points
 
 
 def check_event():
-
     if snail_body[0] == fruit_pos:
         event = 'f'
         return event
 
-    for i in range(len(snail_body)-1):
+    for i in range(len(snail_body) - 1):
 
-        if snail_body[0] == snail_body[i+1]:
+        if snail_body[0] == snail_body[i + 1]:
             event = 'd'
             return event
     # check collides with walls
@@ -94,47 +84,30 @@ def check_event():
         event = 'd'
         return event
 
-# todo есть такой "принцип" - dry (don`t repeat yourself), то есть не повторять один и тот же код (иногда это уместно
-#  но редко) а в следующих 4 методах ты пишешь один и тот же код, отличающийся двумя плюсами/минусами. конкретно тут
-#  я написал бы также, но в большинстве случаев лучше так не писать, поэтому исправим. нужно вместо этих 4ёх функций,
-#  сделать одну (соответственно, там ещё аргументы добавятся).
-#  Нажимай иногда ctrl-alt-L, он тебе пофиксит стиль в файле, будешь видеть как правильно должно всё выглядеть
 
-
-def snail_moves_right(snail_body):
+def move_snail_in_direction(direction):
     snail_body.pop()
-    snail_body.insert(0, [snail_body[0][0], snail_body[0][1]+1])
-    return snail_body
-
-
-def snail_moves_up(snail_body):
-    snail_body.pop()
-    snail_body.insert(0, [snail_body[0][0]-1, snail_body[0][1]])
-    return snail_body
-
-
-def snail_moves_down(snail_body):
-    snail_body.pop()
-    snail_body.insert(0, [snail_body[0][0]+1, snail_body[0][1]])
-    return snail_body
-
-
-def snail_moves_left(snail_body):
-    snail_body.pop()
-    snail_body.insert(0, [snail_body[0][0], snail_body[0][1]-1])
-    return snail_body
+    match direction:
+        case MoveDirection.Up:
+            snail_body.insert(0, [snail_body[0][0] - 1, snail_body[0][1]])
+        case MoveDirection.Right:
+            snail_body.insert(0, [snail_body[0][0], snail_body[0][1] + 1])
+        case MoveDirection.Down:
+            snail_body.insert(0, [snail_body[0][0] + 1, snail_body[0][1]])
+        case MoveDirection.Left:
+            snail_body.insert(0, [snail_body[0][0], snail_body[0][1] - 1])
 
 
 def save_direction(snail_body, snail_direction):
     match snail_direction:
         case MoveDirection.Right:
-            snail_body = snail_moves_right(snail_body)
+            move_snail_in_direction(MoveDirection.Right)
         case MoveDirection.Left:
-            snail_body = snail_moves_left(snail_body)
+            move_snail_in_direction(MoveDirection.Left)
         case MoveDirection.Up:
-            snail_body = snail_moves_up(snail_body)
+            move_snail_in_direction(MoveDirection.Up)
         case MoveDirection.Down:
-            snail_body = snail_moves_down(snail_body)
+            move_snail_in_direction(MoveDirection.Down)
     return snail_body
 
 
@@ -145,11 +118,11 @@ def generate_fruit(dimensions_xy, snail_body):
 
     for x in range(dimensions_xy[0]):
         for y in range(dimensions_xy[1]):
-            possible_tiles[y][x] = x+1
+            possible_tiles[y][x] = x + 1
 
     for i in range(len(snail_body)):
-        x = snail_body[i][1]-1
-        y = snail_body[i][0]-1
+        x = snail_body[i][1] - 1
+        y = snail_body[i][0] - 1
         possible_tiles[y][x] = 0
 
     for i in range(len(possible_tiles)):
@@ -157,8 +130,8 @@ def generate_fruit(dimensions_xy, snail_body):
             if j == 0:
                 possible_tiles[i].remove(j)
 
-    fruit_y = random.randrange(1, dimensions_xy[1]+1)
-    fruit_x = random.choice(possible_tiles[fruit_y-1])
+    fruit_y = random.randrange(1, dimensions_xy[1] + 1)
+    fruit_x = random.choice(possible_tiles[fruit_y - 1])
     fruit_pos = [fruit_y, fruit_x]
     if random.randrange(4) == 3:
         fruit_type = 'O'
@@ -169,16 +142,16 @@ def generate_fruit(dimensions_xy, snail_body):
 
 def move_snail(snail_body, snail_direction, key, key_bindings):
     if key == key_bindings['Right'] and snail_direction != MoveDirection.Left:
-        snail_body = snail_moves_right(snail_body)
+        move_snail_in_direction(MoveDirection.Right)
         snail_direction = MoveDirection.Right
     elif key == key_bindings['Up'] and snail_direction != MoveDirection.Down:
-        snail_body = snail_moves_up(snail_body)
+        move_snail_in_direction(MoveDirection.Up)
         snail_direction = MoveDirection.Up
     elif key == key_bindings['Left'] and snail_direction != MoveDirection.Right:
-        snail_body = snail_moves_left(snail_body)
+        move_snail_in_direction(MoveDirection.Left)
         snail_direction = MoveDirection.Left
     elif key == key_bindings['Down'] and snail_direction != MoveDirection.Up:
-        snail_body = snail_moves_down(snail_body)
+        move_snail_in_direction(MoveDirection.Down)
         snail_direction = MoveDirection.Down
     return snail_body, snail_direction
 
@@ -189,13 +162,13 @@ def install_keys():
     key_bindings = {'Up': 0, 'Down': 0, 'Right': 0, 'Left': 0}
     while i < 4:
         key = list(key_bindings.keys())
-        print('Press '+key[i]+' button')
+        print('Press ' + key[i] + ' button')
         while True:
             if msvcrt.kbhit():
                 key_bindings[key[i]] = msvcrt.getch()
                 i = i + 1
                 break
-    return(key_bindings)
+    return (key_bindings)
 
 
 def check_win_state():
@@ -208,9 +181,8 @@ key_bindings = install_keys()
 dimensions_xy = [10, 10]
 snail_start_length = 3
 snail_direction = MoveDirection.Right
-time_delay = 1/5
+time_delay = 1 / 5
 growth_points = 0
-
 
 snail_body = spawn_snail(snail_start_length, dimensions_xy)
 
@@ -225,7 +197,7 @@ while True:
     time.sleep(0.5)
     key = ''
 
-    tail = snail_body[len(snail_body)-1]
+    tail = snail_body[len(snail_body) - 1]
 
     start_time = time.time()
     while True:
