@@ -2,6 +2,7 @@
 import random
 import time
 import msvcrt
+import enum
 
 # todo пока задания такие:
 #  done0. Напиши мне по комменту на 85 строке
@@ -12,8 +13,13 @@ import msvcrt
 #  done4. Добавить победное сообщение (когда змейка всё поле заполняет)
 #  done5. Выпили все комменты ненужные
 
-# todo твёрдо и чётко, имя функции должно начинаться с глагола, исправь везде, много где гавно
-def matrix_print(matrix):
+class MoveDirection(enum.Enum):
+    Up = 'U'
+    Down = 'D'
+    Right = 'R'
+    Left = 'L'
+
+def print_matrix(matrix):
     print()
     for i in range(len(matrix)):
         for j in range(len(matrix[i])):
@@ -21,7 +27,7 @@ def matrix_print(matrix):
         print()
 
 
-def snail_spawn(snail_length, dimensions_xy):
+def spawn_snail(snail_length, dimensions_xy):
     if snail_start_length > dimensions_xy[0]//2:
         print('Error. Snake is to big to spawn')
         return
@@ -52,7 +58,7 @@ def build_fruit(map, fruit_pos, fruit_tile):
     return map
 
 
-def map_generator(dimensions_xy, snail_body, fruit_pos, fruit_type):
+def generate_map(dimensions_xy, snail_body, fruit_pos, fruit_type):
     map_size_xy = [dimensions_xy[0]+2, dimensions_xy[1]+2]
     map = [['.']*map_size_xy[0] for i in range(map_size_xy[1])]
     map = build_walls(map, 'C', 'V', 'H')
@@ -63,16 +69,13 @@ def map_generator(dimensions_xy, snail_body, fruit_pos, fruit_type):
 
 
 def grow_snail(growth_points):
-    # todo можно append заюзать, вообще не стесняйся после нажатия точки рассматривать, какие там есть методы и их
-    #  описания
-    snail_body.insert(len(snail_body), tail)
+
+    snail_body.append(tail)
     growth_points -= 1
     return growth_points
 
 
-# todo не до конца прозрачное название. сейчас тут по сути проверяется взаимодействие с фруктом либо стеной,
-#  поэтому я бы написал что-то типа check_collision
-def snail_is_checking():
+def check_event():
 
     if snail_body[0] == fruit_pos:
         event = 'f'
@@ -122,21 +125,20 @@ def snail_moves_left(snail_body):
     return snail_body
 
 
-def snail_saves_direction(snail_body, snail_direction):
-    # todo if-elif в петухоне писать вполне одобряемо (а в c# кстати в таком случае нет). Но для общего развития
-    #  давай используем тут вместо ифов конструкцию match-case
-    if snail_direction == 'R':
-        snail_body = snail_moves_right(snail_body)
-    if snail_direction == 'L':
-        snail_body = snail_moves_left(snail_body)
-    if snail_direction == 'U':
-        snail_body = snail_moves_up(snail_body)
-    if snail_direction == 'D':
-        snail_body = snail_moves_down(snail_body)
+def save_direction(snail_body, snail_direction):
+    match snail_direction:
+        case MoveDirection.Right:
+            snail_body = snail_moves_right(snail_body)
+        case MoveDirection.Left:
+            snail_body = snail_moves_left(snail_body)
+        case MoveDirection.Up:
+            snail_body = snail_moves_up(snail_body)
+        case MoveDirection.Down:
+            snail_body = snail_moves_down(snail_body)
     return snail_body
 
 
-def fruit_generation(dimensions_xy, snail_body):
+def generate_fruit(dimensions_xy, snail_body):
     possible_tiles = []
     for i in range(dimensions_xy[1]):
         possible_tiles.append([1] * dimensions_xy[0])
@@ -165,36 +167,32 @@ def fruit_generation(dimensions_xy, snail_body):
     return fruit_pos, fruit_type
 
 
-def snail_is_moving(snail_body, snail_direction, key, key_bindings):
-    # todo
-    #  + давай посмотрим, что такое enum и заюзаем его (вместо букв для направления)
-    if key == key_bindings[2] and snail_direction != 'L':
+def move_snail(snail_body, snail_direction, key, key_bindings):
+    if key == key_bindings['Right'] and snail_direction != MoveDirection.Left:
         snail_body = snail_moves_right(snail_body)
-        snail_direction = 'R'
-    elif key == key_bindings[0] and snail_direction != 'D':
+        snail_direction = MoveDirection.Right
+    elif key == key_bindings['Up'] and snail_direction != MoveDirection.Down:
         snail_body = snail_moves_up(snail_body)
-        snail_direction = 'U'
-    elif key == key_bindings[3] and snail_direction != 'R':
+        snail_direction = MoveDirection.Up
+    elif key == key_bindings['Left'] and snail_direction != MoveDirection.Right:
         snail_body = snail_moves_left(snail_body)
-        snail_direction = 'L'
-    elif key == key_bindings[1] and snail_direction != 'U':
+        snail_direction = MoveDirection.Left
+    elif key == key_bindings['Down'] and snail_direction != MoveDirection.Up:
         snail_body = snail_moves_down(snail_body)
-        snail_direction = 'D'
+        snail_direction = MoveDirection.Down
     return snail_body, snail_direction
 
 
-# todo вот тут хорошее название функции
 def install_keys():
     print('Prepare for the game!')
     i = 0
-    # todo давай попробуем не два массива использовать, а словарь, он здесь лучше подходит
-    key_bindings = [0, 0, 0, 0]
-    button_names = ['Up', 'Down', 'Right', 'Left']
+    key_bindings = {'Up': 0, 'Down': 0, 'Right': 0, 'Left': 0}
     while i < 4:
-        print('Press '+button_names[i]+' button')
+        key = list(key_bindings.keys())
+        print('Press '+key[i]+' button')
         while True:
             if msvcrt.kbhit():
-                key_bindings[i] = msvcrt.getch()
+                key_bindings[key[i]] = msvcrt.getch()
                 i = i + 1
                 break
     return(key_bindings)
@@ -209,16 +207,17 @@ key_bindings = install_keys()
 
 dimensions_xy = [10, 10]
 snail_start_length = 3
-snail_direction = 'R'
+snail_direction = MoveDirection.Right
 time_delay = 1/5
 growth_points = 0
 
-snail_body = snail_spawn(snail_start_length, dimensions_xy)
 
-fruit_pos, fruit_type = fruit_generation(dimensions_xy, snail_body)
+snail_body = spawn_snail(snail_start_length, dimensions_xy)
 
-map = map_generator(dimensions_xy, snail_body, fruit_pos, fruit_type)
-matrix_print(map)
+fruit_pos, fruit_type = generate_fruit(dimensions_xy, snail_body)
+
+map = generate_map(dimensions_xy, snail_body, fruit_pos, fruit_type)
+print_matrix(map)
 print('')
 print('')
 
@@ -238,23 +237,23 @@ while True:
                 while True:
                     if msvcrt.getch() == b'p':
                         break
-            elif key in key_bindings:
+            elif key in list(key_bindings.values()):
                 break
         elif time.time() - start_time > time_delay:
             break
 
-    if key in key_bindings:
-        snail_body, snail_direction = snail_is_moving(snail_body, snail_direction, key, key_bindings)
+    if key in list(key_bindings.values()):
+        snail_body, snail_direction = move_snail(snail_body, snail_direction, key, key_bindings)
     else:
-        snail_body = snail_saves_direction(snail_body, snail_direction)
+        snail_body = save_direction(snail_body, snail_direction)
 
-    event = snail_is_checking()
+    event = check_event()
     if event == 'f':
         if fruit_type == 'o':
             growth_points += 1
         elif fruit_type == 'O':
             growth_points += 3
-        fruit_pos, fruit_type = fruit_generation(dimensions_xy, snail_body)
+        fruit_pos, fruit_type = generate_fruit(dimensions_xy, snail_body)
     elif event == 'd':
         print('snail is dead')
         time.sleep(2)
@@ -263,8 +262,8 @@ while True:
     if growth_points > 0:
         growth_points = grow_snail(growth_points)
 
-    map = map_generator(dimensions_xy, snail_body, fruit_pos, fruit_type)
-    matrix_print(map)
+    map = generate_map(dimensions_xy, snail_body, fruit_pos, fruit_type)
+    print_matrix(map)
 
     if check_win_state():
         print('you win')
