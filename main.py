@@ -114,17 +114,8 @@ def move_snail_in_direction(direction):
 
 
 # todo ну тут ты понял
-def save_direction(snail_body, snail_direction):
-    match snail_direction:
-        case MoveDirection.Right:
-            move_snail_in_direction(MoveDirection.Right)
-        case MoveDirection.Left:
-            move_snail_in_direction(MoveDirection.Left)
-        case MoveDirection.Up:
-            move_snail_in_direction(MoveDirection.Up)
-        case MoveDirection.Down:
-            move_snail_in_direction(MoveDirection.Down)
-    return snail_body
+def save_direction():
+    move_snail_in_direction(snail_direction)
 
 
 def generate_fruit(dimensions_xy, snail_body):
@@ -235,7 +226,7 @@ while True:
     if key in list(key_bindings.values()):
         snail_body, snail_direction = move_snail(snail_body, snail_direction, key, key_bindings)
     else:
-        snail_body = save_direction(snail_body, snail_direction)
+        save_direction()
 
     event = check_event()
     if event == 'f':
@@ -246,7 +237,7 @@ while True:
         fruit_pos, fruit_type = generate_fruit(dimensions_xy, snail_body)
     elif event == 'd':
         print('snail is dead')
-        time.sleep(2)
+        time.sleep(0.5)
         break
 
     if growth_points > 0:
@@ -260,3 +251,4 @@ while True:
         break
 
 print('end of game')
+time.sleep(0.5)
