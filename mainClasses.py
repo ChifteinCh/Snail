@@ -4,6 +4,8 @@ import msvcrt
 import enum
 import os
 
+# todo разобраться с * во всех функциях -где надо и где не надо
+
 
 def clear():
     os.system('cls')
@@ -21,17 +23,70 @@ class TileType(enum.Enum):
     Floor = '.'
     Wall = 'W'
     Snake = 's'
-    Snake_End = 's'
+    Snake_Head = 'S'
+    Enemy_Snake = 'e'
+    Enemy_Snake_Head = 'E'
     Collide = '!'
     Fruit = 'f'
     Big_Fruit = 'F'
-    Wall_Fruit = 'w'
+    Wall_Fruit = 'o'
 
 
 class FruitType(enum.Enum):
     Normal = 1
     Big = 3
     Wall = 0
+
+
+def mask(map_, *object_lists):
+    body_list = body_list_from_objects(*object_lists)
+    cords = [cord for lst in body_list for cord in lst]
+    possible_tiles = []
+    for i in range(map_.map_dim[1] - 2):
+        possible_tiles.append([1] * (map_.map_dim[0] - 2))
+
+    for x in range(map_.map_dim[0] - 2):
+        for y in range(map_.map_dim[1] - 2):
+            possible_tiles[y][x] = x + 1
+    for cord in cords:
+        for i in range(len(cords)):
+            x = cord[0] - 1
+            y = cord[1] - 1
+            possible_tiles[y][x] = 0
+
+    for i in range(len(possible_tiles)):
+        for j in possible_tiles[i].copy():
+            if j == 0:
+                possible_tiles[i].remove(j)
+
+    possible_rows = []
+    for i in range(len(possible_tiles)):
+        possible_rows.append(i)
+
+    for i in range(len(possible_tiles)):
+        if not possible_tiles[i]:
+            possible_rows.remove(i)
+
+    return possible_tiles, possible_rows
+
+
+def pick_rand_point(map_, *objects):
+    possible_tiles, possible_rows = mask(map_, *objects)
+    y = random.choice(possible_rows) + 1
+    x = random.choice(possible_tiles[y - 1])
+    return [x, y]
+
+
+def body_list_from_objects(*objects):
+    lst = []
+    for obj in objects:
+        if isinstance(obj, Snake):
+            lst.append(obj.get_body)
+        elif isinstance(obj, Fruit):
+            lst.append([obj.get_pos])
+        elif isinstance(obj, Wall):
+            lst.append(obj.get_pos)
+    return lst
 
 
 def print_matrix(matrix):
@@ -68,38 +123,37 @@ class Map:
                 self.__map[j + 1][i + 1] = TileType.Floor
 
     def build_walls(self):
-        self.__map[0][0:self.__height] = self.__map[self.__length - 1][0:self.__height] = [TileType.Wall] * self.__height
+        self.__map[0][0:self.__height] = self.__map[self.__length - 1][0:self.__height] = [
+                                                                                              TileType.Wall] * self.__height
         for i in range(self.__length - 1):
             self.__map[i][0] = self.__map[i][self.__height - 1] = TileType.Wall
 
     def build_snake(self, snake):
-        for i in range(snake.get_length-1):
+        self.__map[snake.get_body[0][0]][snake.get_body[0][1]] = TileType.Snake_Head
+        for i in range(1, snake.get_length):
             self.__map[snake.get_body[i][0]][snake.get_body[i][1]] = TileType.Snake
-        self.__map[snake.get_body[snake.get_length-1][0]][snake.get_body[snake.get_length-1][1]] = TileType.Snake_End
 
     def build_fruit(self, fruit):
-        self.__map[fruit.position[0]][fruit.position[1]] = fruit.tile
+        self.__map[fruit.get_pos[0]][fruit.get_pos[1]] = fruit.tile
 
     def place_eog_tile(self, eog_pos):
         self.__map[eog_pos[0]][eog_pos[1]] = TileType.Collide
 
     def build_fruit_walls(self, wall):
         if wall.get_lifetime > 0:
-            self.__map[wall.get_pos[0]][wall.get_pos[1]] = TileType.Wall
-            if self.__map[wall.get_pos[0]][wall.get_pos[1]-1] == TileType.Floor:
-                self.__map[wall.get_pos[0]][wall.get_pos[1] - 1] = TileType.Wall
-            if self.__map[wall.get_pos[0]][wall.get_pos[1]+1] == TileType.Floor:
-                self.__map[wall.get_pos[0]][wall.get_pos[1] + 1] = TileType.Wall
-            if self.__map[wall.get_pos[0]-1][wall.get_pos[1]] == TileType.Floor:
-                self.__map[wall.get_pos[0] - 1][wall.get_pos[1]] = TileType.Wall
-            if self.__map[wall.get_pos[0]+1][wall.get_pos[1]] == TileType.Floor:
-                self.__map[wall.get_pos[0] + 1][wall.get_pos[1]] = TileType.Wall
+            for pos in wall.get_pos:
+                self.__map[pos[0]][pos[1]] = TileType.Wall
+
+    def remove_fruit_walls(self, wall):
+        for pos in wall.get_pos:
+            self.__map[pos[0]][pos[1]] = TileType.Floor
 
 
 class Snake:
-    def __init__(self, length=3):
+    def __init__(self, length=3):   # изменяю длину тела - надо чекнуть все вызовы после этого
         self.__length = length
-        self.__body = [[0, 0] for i in range(self.__length + 1)]
+        self.__body = [[0, 0] for i in range(self.__length)]
+        self.__last_peace = [0, 0]
         self.__move_dir = MoveDirection.Right
         self.__grow_points = 0
 
@@ -127,8 +181,11 @@ class Snake:
             self.__body[i][0] = (spawn_map.map_dim[0] - 2) // 2 + 1 - i
             self.__body[i][1] = (spawn_map.map_dim[1] - 2) // 2 + 1
 
+    def spawn(self, map_, *objects):
+        self.__body[0] = pick_rand_point(map_, *objects)
+
+
     def move(self):
-        self.grow()
         match self.__move_dir:
             case MoveDirection.Up:
                 self.__body.insert(0, [self.__body[0][0], self.__body[0][1] - 1])
@@ -138,33 +195,34 @@ class Snake:
                 self.__body.insert(0, [self.__body[0][0], self.__body[0][1] + 1])
             case MoveDirection.Left:
                 self.__body.insert(0, [self.__body[0][0] - 1, self.__body[0][1]])
+        self.__last_peace = self.__body.pop()
 
     def change_dir(self, direction):
         if direction == MoveDirection.Right and self.__move_dir != MoveDirection.Left:
-            self.__move_dir = MoveDirection.Right
+            self.__move_dir = direction
         elif direction == MoveDirection.Up and self.__move_dir != MoveDirection.Down:
-            self.__move_dir = MoveDirection.Up
+            self.__move_dir = direction
         elif direction == MoveDirection.Left and self.__move_dir != MoveDirection.Right:
-            self.__move_dir = MoveDirection.Left
+            self.__move_dir = direction
         elif direction == MoveDirection.Down and self.__move_dir != MoveDirection.Up:
-            self.__move_dir = MoveDirection.Down
+            self.__move_dir = direction
 
     def grow(self):
-        if self.__grow_points == 0:
-            self.__body.pop()
-        elif self.__grow_points > 0:
+        if self.__grow_points > 0:
             self.__length += 1
+            self.__body.append(self.__last_peace)
             self.__grow_points -= 1
 
 
 class Fruit:
-    def __init__(self):
+    def __init__(self, map_, *objects):
         self.__pos = [0, 0]
         self.__type = FruitType.Normal
         self.__tile = TileType.Fruit
+        self.spawn(map_, *objects)
 
     @property
-    def position(self):
+    def get_pos(self):
         return self.__pos
 
     @property
@@ -175,36 +233,8 @@ class Fruit:
     def type(self):
         return self.__type
 
-    def spawn(self, map_, *snake_list):
-        possible_tiles = []
-        for i in range(map_.map_dim[1] - 2):
-            possible_tiles.append([1] * (map_.map_dim[0] - 2))
-
-        for x in range(map_.map_dim[0] - 2):
-            for y in range(map_.map_dim[1] - 2):
-                possible_tiles[y][x] = x + 1
-        for snake in snake_list:
-            for i in range(snake.get_length):
-                x = snake.get_body[i][0] - 1
-                y = snake.get_body[i][1] - 1
-                possible_tiles[y][x] = 0
-
-        for i in range(len(possible_tiles)):
-            for j in possible_tiles[i].copy():
-                if j == 0:
-                    possible_tiles[i].remove(j)
-
-        possible_rows = []
-        for i in range(len(possible_tiles)):
-            possible_rows.append(i)
-
-        for i in range(len(possible_tiles)):
-            if not possible_tiles[i]:
-                possible_rows.remove(i)
-
-        fruit_y = random.choice(possible_rows) + 1
-        fruit_x = random.choice(possible_tiles[fruit_y - 1])
-        self.__pos = [fruit_x, fruit_y]
+    def spawn(self, map_, *objects):
+        self.__pos = pick_rand_point(map_, *objects)
         r = random.randrange(5)
         if r == 4:
             self.__type = FruitType.Big
@@ -219,10 +249,11 @@ class Fruit:
 
 class Wall:
 
-    def __init__(self, map_, *snakes):
-        self.__pos = [0, 0]
+    def __init__(self, map_, *objects):
+        self.__center = [0, 0]
+        self.__pos = []
         self.__lifetime = 5
-        self.spawn_wall(map_, *snakes)
+        self.spawn_wall(map_, *objects)
 
     @property
     def get_pos(self):
@@ -232,36 +263,18 @@ class Wall:
     def get_lifetime(self):
         return self.__lifetime
 
-    def spawn_wall(self, map_, *snakes):
-        possible_tiles = []
-        for i in range(map_.map_dim[1] - 2):
-            possible_tiles.append([1] * (map_.map_dim[0] - 2))
+    def spawn_wall(self, map_, *objects):
+        self.__center = pick_rand_point(map_, *objects)
 
-        for x in range(map_.map_dim[0] - 2):
-            for y in range(map_.map_dim[1] - 2):
-                possible_tiles[y][x] = x + 1
-        for snake in snakes:
-            for i in range(snake.get_length):
-                x = snake.get_body[i][0] - 1
-                y = snake.get_body[i][1] - 1
-                possible_tiles[y][x] = 0
-
-        for i in range(len(possible_tiles)):
-            for j in possible_tiles[i].copy():
-                if j == 0:
-                    possible_tiles[i].remove(j)
-
-        possible_rows = []
-        for i in range(len(possible_tiles)):
-            possible_rows.append(i)
-
-        for i in range(len(possible_tiles)):
-            if not possible_tiles[i]:
-                possible_rows.remove(i)
-
-        wall_y = random.choice(possible_rows) + 1
-        wall_x = random.choice(possible_tiles[wall_y - 1])
-        self.__pos = [wall_x, wall_y]
+        self.__pos.append(self.__center)
+        if map_.get_tile(self.__center[0], self.__center[1] - 1) == TileType.Floor:
+            self.__pos.append([self.__center[0], self.__center[1] - 1])
+        if map_.get_tile(self.__center[0], self.__center[1] + 1) == TileType.Floor:
+            self.__pos.append([self.__center[0], self.__center[1] + 1])
+        if map_.get_tile(self.__center[0] - 1, self.__center[1]) == TileType.Floor:
+            self.__pos.append([self.__center[0] - 1, self.__center[1]])
+        if map_.get_tile(self.__center[0] + 1, self.__center[1]) == TileType.Floor:
+            self.__pos.append([self.__center[0] + 1, self.__center[1]])
 
     def low_lifetime(self):
         if self.__lifetime > 0:
@@ -271,8 +284,8 @@ class Wall:
 class Manager:
     def __init__(self, map_, *snakes):
         self.__map = map_
-        self.__fruits = [Fruit(), Fruit()]
-        self.__snake_list = snakes
+        self.__fruits = []
+        self.__snake_list = [*snakes]
         self.__wall_list = []
         self.__snake_amount = len(self.__snake_list)
         self.__key_bindings = {b'p': MoveDirection.Pause}
@@ -283,12 +296,12 @@ class Manager:
         self.install_keys()
         clear()
         for snakes in self.__snake_list:
-            snakes.spawn(self.__map)
+            snakes.spawn(self.__map, *self.__snake_list)
         self.__map.build_walls()
         for snakes in self.__snake_list:
             self.__map.build_snake(snakes)
+        self.__fruits = [Fruit(self.__map, *self.__snake_list), Fruit(self.__map, *self.__snake_list)]
         for fruits in self.__fruits:
-            fruits.spawn(self.__map, *self.__snake_list)
             self.__map.build_fruit(fruits)
         self.__map.print()
 
@@ -315,16 +328,17 @@ class Manager:
                 break
 
     def gen_map(self):
-        clear()
         self.__map.clear()
-        for snakes in self.__snake_list:
-            self.__map.build_snake(snakes)
         for fruits in self.__fruits:
             self.__map.build_fruit(fruits)
+        for snakes in self.__snake_list:
+            self.__map.build_snake(snakes)
         for wall in self.__wall_list:
             self.__map.build_fruit_walls(wall)
+        self.__map.build_walls()
 
     def print_map(self):
+        clear()
         self.__map.print()
 
     def run(self):
@@ -337,7 +351,7 @@ class Manager:
                     key = msvcrt.getch()
                     if key in list(self.__key_bindings.keys()):
                         break
-                elif time.time() - start_time > 1/5:
+                elif time.time() - start_time > 1 / 5:
                     break
             if key in list(self.__key_bindings.keys()):
                 if self.__key_bindings[key] == MoveDirection.Pause:
@@ -346,13 +360,15 @@ class Manager:
                     self.__snake_list[0].change_dir(self.__key_bindings[key])
             for snakes in self.__snake_list:
                 snakes.move()
+                snakes.grow()
             self.check_wall()
-            self.check_event(self.__snake_list[0], self.__fruits)
+            self.gen_map()
+            self.check_event(self.__snake_list, self.__fruits)
             self.gen_map()
 
             if self.__eog[0]:
                 self.__map.place_eog_tile(self.__eog[1])
-                self.__map.print()
+                self.print_map()
                 print('Snail is dead')
                 time.sleep(1)
                 break
@@ -369,29 +385,33 @@ class Manager:
                 time.sleep(0.5)
                 break
 
-    def check_event(self, snake, fruits):
-        if snake.get_body[0] != snake.get_body[snake.get_length]:
+    def check_event(self, snake_list, fruits):
+        for snake in snake_list:
+            # if snake.get_body[0] != snake.get_body[snake.get_length-1]:
             if self.__map.get_tile(snake.get_body[0][0], snake.get_body[0][1]) == TileType.Snake:
                 self.__eog[0] = 1
                 self.__eog[1] = snake.get_body[0]
-        if self.__map.get_tile(snake.get_body[0][0], snake.get_body[0][1]) == TileType.Wall:
-            self.__eog[0] = 1
-            self.__eog[1] = snake.get_body[0]
-        if self.__map.get_tile(snake.get_body[0][0], snake.get_body[0][1]) == TileType.Fruit or TileType.Big_Fruit or TileType.Wall_Fruit:
-            for i in range(len(fruits)):
-                if snake.get_body[0] == fruits[i].position:
-                    snake.grow_points = fruits[i].type.value
-                    if fruits[i].type == FruitType.Wall:
-                        self.__wall_list.append(Wall(self.__map, *self.__snake_list))
-                    self.__fruits[i].spawn(self.__map, *self.__snake_list)
+            if self.__map.get_tile(snake.get_body[0][0], snake.get_body[0][1]) == TileType.Wall:
+                self.__eog[0] = 1
+                self.__eog[1] = snake.get_body[0]
+            if self.__map.get_tile(snake.get_body[0][0],
+                                   snake.get_body[0][1]) == TileType.Fruit or TileType.Big_Fruit or TileType.Wall_Fruit:
+                for i in range(len(fruits.copy())):
+                    if snake.get_body[0] == fruits[i].get_pos:
+                        snake.grow_points = fruits[i].type.value
+                        if fruits[i].type == FruitType.Wall:
+                            self.__wall_list.append(Wall(self.__map, *self.__snake_list, *self.__fruits, *self.__wall_list))
+                        self.__fruits.pop(i)
+                        self.__fruits.append(Fruit(self.__map, *self.__snake_list, *self.__fruits, *self.__wall_list))
 
     def check_wall(self):
         for wall in self.__wall_list:
             wall.low_lifetime()
             if wall.get_lifetime == 0:
+                self.__map.remove_fruit_walls(wall)
                 self.__wall_list.remove(wall)
 
 
-Game = Manager(Map(4, 10), Snake(1))
+Game = Manager(Map(4, 10), Snake(1), Snake(1))
 Game.initialize()
 Game.run()
