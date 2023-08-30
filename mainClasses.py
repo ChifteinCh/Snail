@@ -432,8 +432,13 @@ class Manager:
         while True:
             time.sleep(0.1)
             # self.read_keyboard()
-            self.__snake_list[0].set_direction(choose_direction(self.__snake_list[0], self.__fruits))
-            self.__snake_list[1].set_direction(choose_direction(self.__snake_list[1], self.__fruits))
+            for snakes in self.__snake_list:
+                sorted_snake_list = self.__snake_list
+                sorted_snake_list.remove(snakes)
+                sorted_snake_list.insert(0, snakes)
+                snakes.set_direction(choose_direction(sorted_snake_list, self.__fruits))
+            # self.__snake_list[0].set_direction(choose_direction(self.__snake_list[0], self.__fruits))
+            # self.__snake_list[1].set_direction(choose_direction(self.__snake_list[1], self.__fruits))
             # time.sleep(200)
             for snakes in self.__snake_list:
                 snakes.move()
