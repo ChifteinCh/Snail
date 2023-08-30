@@ -361,10 +361,12 @@ class Wall:
 
 class Manager:
 
-    def __init__(self, map_, pl_snake, *enemy_snakes):
+    def __init__(self, map_, pl_snake, *enemy_snakes, num_of_fruits=2):
         self.__map = map_
         self.__fruits = []
         self.__snake_list = [pl_snake, *enemy_snakes]
+        for i in range(num_of_fruits):
+            self.__fruits.append(Fruit(self.__map, *self.__snake_list))
         self.__wall_list = []
         self.__snake_amount = len(self.__snake_list)
         self.__key_bindings = {b'p': MoveDirection.Pause}
@@ -381,7 +383,6 @@ class Manager:
         self.__map.build_enemy_snake_head(self.__snake_list[1])
         self.__map.build_snake(self.__snake_list[0])
         self.__map.build_enemy_snake(self.__snake_list[1])
-        self.__fruits = [Fruit(self.__map, *self.__snake_list), Fruit(self.__map, *self.__snake_list)]
         for fruits in self.__fruits:
             self.__map.build_fruit(fruits)
         self.__map.print()
@@ -437,8 +438,6 @@ class Manager:
                 sorted_snake_list.remove(snakes)
                 sorted_snake_list.insert(0, snakes)
                 snakes.set_direction(choose_direction(sorted_snake_list, self.__fruits))
-            # self.__snake_list[0].set_direction(choose_direction(self.__snake_list[0], self.__fruits))
-            # self.__snake_list[1].set_direction(choose_direction(self.__snake_list[1], self.__fruits))
             # time.sleep(200)
             for snakes in self.__snake_list:
                 snakes.move()
@@ -485,12 +484,8 @@ class Manager:
 
     def check_event(self, snake_list, fruits):
         for snake in snake_list:
-            # if snake.get_body[0] != snake.get_body[snake.get_length-1]:
             if self.__map.get_tile(snake.get_body[0][0], snake.get_body[0][1]) in snake.get_death_tiles:
                 snake.respawn(self.__map, *self.__snake_list, *self.__fruits, *self.__wall_list)
-            # if self.__map.get_tile(snake.get_body[0][0], snake.get_body[0][1]) == TileType.Wall:
-            #     self.__eog[0] = 1
-            #     self.__eog[1] = snake.get_body[0]
             if self.__map.get_tile(snake.get_body[0][0],
                                    snake.get_body[0][1]) == TileType.Fruit or TileType.Big_Fruit or TileType.Wall_Fruit:
                 for i in range(len(fruits.copy())):
@@ -510,6 +505,6 @@ class Manager:
 
 
 CollideTiles = [TileType.Wall, TileType.Snake, TileType.Snake_Head, TileType.Enemy_Snake, TileType.Enemy_Snake_Head]
-Game = Manager(Map(20, 20), Snake(3, is_player=1), Snake(3))
+Game = Manager(Map(20, 20), Snake(3, is_player=1), Snake(3), num_of_fruits=5)
 Game.initialize()
 Game.run()
