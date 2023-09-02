@@ -1,4 +1,4 @@
 # Snail
 Snail but Snake
 
-Launch via cmd
+Launch via mainClasses in cmd
